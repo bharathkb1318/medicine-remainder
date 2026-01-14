@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ashrama Caretaker - Medicine Reminder</title>
+
+<style>
+    body {
+        font-family: "Poppins", sans-serif;
+        background: linear-gradient(to right, #6a11cb, #2575fc);
+        margin: 0;
+    }
+
+    header {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        color: white;
+        padding: 22px;
+        text-align: center;
+        font-size: 32px;
+        font-weight: 600;
+    }
+
+    .container {
+        width: 90%;
+        max-width: 900px;
+        margin: 25px auto;
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+
+    input, button, select {
+        padding: 12px;
+        width: 100%;
+        margin-top: 10px;
+        font-size: 16px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+    }
+
+    button {
+        cursor: pointer;
+        background: #2f5fa3;
+        border: none;
+        color: white;
+    }
+
+    .alarm-btn {
+        background: #ff9800;
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+
+    .wa-all-btn {
+        background: #25D366;
+        margin-top: 15px;
+        font-size: 18px;
+    }
+
+    .person {
+        background: #eef3f9;
+        padding: 15px;
+        margin: 12px 0;
+        border-left: 7px solid #2f5fa3;
+        border-radius: 12px;
+    }
+</style>
+</head>
+
+<body>
+
+<header id="title"></header>
+
+<div class="container">
+
+    <label><b>Select Language</b></label>
+    <select onchange="changeLanguage(this.value)">
+        <option value="en">English</option>
+        <option value="hi">Hindi</option>
+        <option value="ta">Tamil</option>
+        <option value="te">Telugu</option>
+        <option value="kn">Kannada</option>
+        <option value="ml">Malayalam</option>
+        <option value="bn">Bengali</option>
+        <option value="mr">Marathi</option>
+        <option value="es">Spanish</option>
+        <option value="fr">French</option>
+        <option value="ar">Arabic</option>
+        <option value="zh">Chinese</option>
+    </select>
+
+    <button class="alarm-btn" onclick="enableAlarmSound()" id="alarmBtn"></button>
+
+    <h2 id="addTitle"></h2>
+
+    <label id="nameLbl"></label>
+    <input type="text" id="patientName">
+
+    <label id="medLbl"></label>
+    <input type="text" id="medicine">
+
+    <label id="timeLbl"></label>
+    <input type="time" id="medTime">
+
+    <button onclick="addPerson()" id="addBtn"></button>
+
+    <hr>
+
+    <button class="wa-all-btn" onclick="sendAllWhatsApp()" id="waBtn"></button>
+
+    <hr>
+
+    <h2 id="listTitle"></h2>
+    <div id="list"></div>
+
+</div>
+
+<script>
+const caretakerNumber = "919353426054";
+let people = JSON.parse(localStorage.getItem("people")) || [];
+let alarmAudio, alarmEnabled = false, remindedToday = {};
+let currentLang = "en";
+
+/* 🌐 LANGUAGES */
+const lang = {
+    en:{title:"Ashrama Caretaker – Medicine Reminder",add:"Add Elderly Person",name:"Name",med:"Medicine",time:"Medicine Time",addBtn:"Add",wa:"Send ALL Data to WhatsApp",list:"Elderly List",alarm:"Enable Alarm Sound",alert:"Medicine Time"},
+    hi:{title:"आश्रम देखभाल – दवा अनुस्मारक",add:"वरिष्ठ जोड़ें",name:"नाम",med:"दवा",time:"समय",addBtn:"जोड़ें",wa:"व्हाट्सएप भेजें",list:"सूची",alarm:"अलार्म चालू करें",alert:"दवा का समय"},
+    ta:{title:"ஆசிரம பராமரிப்பு",add:"முதியவர் சேர்க்க",name:"பெயர்",med:"மருந்து",time:"நேரம்",addBtn:"சேர்",wa:"வாட்ஸ்அப் அனுப்பு",list:"பட்டியல்",alarm:"அலாரம் இயக்கு",alert:"மருந்து நேரம்"},
+    te:{title:"ఆశ్రమ సంరక్షణ",add:"వృద్ధుడిని చేర్చు",name:"పేరు",med:"మందు",time:"సమయం",addBtn:"జోడించు",wa:"వాట్సాప్ పంపు",list:"జాబితా",alarm:"అలారం ప్రారంభించు",alert:"మందు సమయం"}
+};
+
+function changeLanguage(l){
+    currentLang = l;
+    title.innerText = lang[l].title;
+    addTitle.innerText = lang[l].add;
+    nameLbl.innerText = lang[l].name;
+    medLbl.innerText = lang[l].med;
+    timeLbl.innerText = lang[l].time;
+    addBtn.innerText = lang[l].addBtn;
+    waBtn.innerText = lang[l].wa;
+    listTitle.innerText = lang[l].list;
+    alarmBtn.innerText = lang[l].alarm;
+}
+changeLanguage("en");
+
+/* 🔔 ALARM */
+function enableAlarmSound(){
+    alarmAudio = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
+    alarmAudio.play().then(()=>{
+        alarmAudio.pause();
+        alarmEnabled = true;
+        alert("Alarm Enabled");
+    });
+}
+
+/* ✅ FIXED ADD PERSON */
+function addPerson() {
+    const nameInput = document.getElementById("patientName");
+    const medInput = document.getElementById("medicine");
+    const timeInput = document.getElementById("medTime");
+
+    const name = nameInput.value.trim();
+    const medicine = medInput.value.trim();
+    const time = timeInput.value;
+
+    if (!name || !medicine || !time) {
+        alert("Fill all fields!");
+        return;
+    }
+
+    people.push({ name, medicine, time });
+    localStorage.setItem("people", JSON.stringify(people));
+    render();
+
+    nameInput.value = "";
+    medInput.value = "";
+    timeInput.value = "";
+}
+
+/* RENDER */
+function render(){
+    list.innerHTML = "";
+    people.forEach(p=>{
+        list.innerHTML += `
+        <div class="person">
+            <b>Name:</b> ${p.name}<br>
+            <b>Medicine:</b> ${p.medicine}<br>
+            <b>Time:</b> ${p.time}
+        </div>`;
+    });
+}
+render();
+
+/* WHATSAPP */
+function sendAllWhatsApp(){
+    let msg="";
+    people.forEach((p,i)=>{
+        msg += `${i+1}. ${p.name} - ${p.medicine} at ${p.time}\n`;
+    });
+    window.open(`https://wa.me/${caretakerNumber}?text=${encodeURIComponent(msg)}`);
+}
+
+/* ⏰ CHECK TIME */
+setInterval(()=>{
+    const now = new Date();
+    const t = now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0");
+
+    people.forEach(p=>{
+        const key = p.name + p.time + now.toDateString();
+        if(p.time === t && !remindedToday[key]){
+            remindedToday[key] = true;
+            if(alarmEnabled) alarmAudio.play();
+            alert(`${lang[currentLang].alert}\n${p.name}\n${p.medicine}`);
+        }
+    });
+},10000);
+</script>
+
+</body>
+</html>
